@@ -40,9 +40,10 @@ function formatTimestamp(timestamp: string): string {
 export function useWaiterCalls() {
   const [calls, setCalls] = useState<WaiterCall[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
+    const supabase = createClient();
+    
     const fetchCalls = async () => {
       try {
         setLoading(true);
@@ -118,10 +119,12 @@ export function useWaiterCalls() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, []);
 
   const acknowledgeCall = useCallback(
     async (callId: string) => {
+      const supabase = createClient();
+      
       // Optimistic update
       setCalls((prev) =>
         prev.map((call) =>
@@ -145,11 +148,13 @@ export function useWaiterCalls() {
         );
       }
     },
-    [supabase]
+    []
   );
 
   const removeCall = useCallback(
     async (callId: string) => {
+      const supabase = createClient();
+      
       // Optimistic update
       setCalls((prev) => prev.filter((call) => call.id !== callId));
 
@@ -163,7 +168,7 @@ export function useWaiterCalls() {
         console.error('Error deleting call:', error);
       }
     },
-    [supabase]
+    []
   );
 
   const unacknowledgedCount = calls.filter((c) => !c.acknowledged).length;

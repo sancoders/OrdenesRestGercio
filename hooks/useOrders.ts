@@ -91,10 +91,11 @@ export function useOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
 
   // Fetch initial orders
   useEffect(() => {
+    const supabase = createClient();
+    
     const fetchOrders = async () => {
       try {
         setLoading(true);
@@ -175,10 +176,12 @@ export function useOrders() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, []);
 
   const updateOrderStatus = useCallback(
     async (orderId: string, status: 'pending' | 'cooking' | 'ready') => {
+      const supabase = createClient();
+      
       // Optimistic update
       setOrders((prev) =>
         prev.map((order) =>
@@ -211,11 +214,13 @@ export function useOrders() {
         }
       }
     },
-    [supabase]
+    []
   );
 
   const removeOrder = useCallback(
     async (orderId: string) => {
+      const supabase = createClient();
+      
       // Optimistic update
       setOrders((prev) => prev.filter((order) => order.id !== orderId));
 
@@ -246,7 +251,7 @@ export function useOrders() {
         }
       }
     },
-    [supabase]
+    []
   );
 
   return {
