@@ -49,42 +49,45 @@ function formatTimestamp(timestamp: string): string {
   const date = new Date(timestamp);
   // Subtract 3 hours
   date.setHours(date.getHours() - 3);
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  const seconds = date.getSeconds().toString().padStart(2, '0');
+  
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
   return `${hours}:${minutes}:${seconds}`;
 }
 
-// Parse items from database (could be JSON string or array)
-function parseItems(items: unknown): OrderItem[] {
+// Parse items from JSON or array
+function parseItems(items: any): OrderItem[] {
   if (!items) return [];
   
-  let parsed: unknown[];
   if (typeof items === 'string') {
     try {
-      parsed = JSON.parse(items);
+      const parsed = JSON.parse(items);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item: any, idx: number) => ({
+          id: item.id || String(idx),
+          name: item.name || item.nombre || item || 'Item',
+          quantity: item.quantity || item.cantidad || 1,
+          notes: item.notes || item.notas || '',
+        }));
+      }
+      return [];
     } catch {
-      // If it's a simple string, treat it as a single item
-      return [{ id: '1', name: items, quantity: 1 }];
+      return [];
     }
-  } else if (Array.isArray(items)) {
-    parsed = items;
-  } else {
-    return [];
   }
-
-  return parsed.map((item: unknown, index: number) => {
-    if (typeof item === 'string') {
-      return { id: String(index + 1), name: item, quantity: 1 };
-    }
-    const itemObj = item as Record<string, unknown>;
-    return {
-      id: String(itemObj.id || index + 1),
-      name: String(itemObj.name || itemObj.nombre || 'Item'),
-      quantity: Number(itemObj.quantity || itemObj.cantidad || 1),
-      notes: itemObj.notes || itemObj.notas ? String(itemObj.notes || itemObj.notas) : undefined,
-    };
-  });
+  
+  if (Array.isArray(items)) {
+    return items.map((item: any, idx: number) => ({
+      id: item.id || String(idx),
+      name: item.name || item.nombre || String(item) || 'Item',
+      quantity: item.quantity || item.cantidad || 1,
+      notes: item.notes || item.notas || '',
+    }));
+  }
+  
+  return [];
 }
 
 export function useOrders() {
@@ -92,153 +95,30 @@ export function useOrders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch initial orders
+  // Fetch initial orders and subscribe to changes
   useEffect(() => {
     const supabase = createClient();
-    
+    let isMounted = true;
+
     const fetchOrders = async () => {
       try {
-        setLoading(true);
+        console.log('[v0] Fetching orders from Supabase...');
         const { data, error: fetchError } = await supabase
           .from('orders')
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (fetchError) throw fetchError;
-
-        const mappedOrders: Order[] = (data || []).map((row) => ({
-          id: String(row.id),
-          order_id: row.order_id || row.id,
-          table: row.table_id || 0,
-          items: parseItems(row.items),
-          status: mapEstado(row.estado),
-          createdAt: formatTimestamp(row.created_at),
-          rawTimestamp: row.created_at,
-        }));
-
-        setOrders(mappedOrders);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching orders:', err);
-        setError('Error al cargar pedidos');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('orders-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const row = payload.new;
-            const newOrder: Order = {
-              id: String(row.id),
-              order_id: row.order_id || row.id,
-              table: row.table_id || 0,
-              items: parseItems(row.items),
-              status: mapEstado(row.estado),
-              createdAt: formatTimestamp(row.created_at),
-              rawTimestamp: row.created_at,
-            };
-            setOrders((prev) => [newOrder, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            const row = payload.new;
-            setOrders((prev) =>
-              prev.map((order) =>
-                order.id === String(row.id)
-                  ? {
-                      ...order,
-                      items: parseItems(row.items),
-                      status: mapEstado(row.estado),
-                      table: row.table_id || order.table,
-                    }
-                  : order
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            const row = payload.old;
-            setOrders((prev) => prev.filter((order) => order.id !== String(row.id)));
-          }
+        if (fetchError) {
+          console.error('[v0] Fetch error:', fetchError);
+          throw fetchError;
         }
-      )
-      .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+        if (!isMounted) return;
 
-  const updateOrderStatus = useCallback(
-    async (orderId: string, status: 'pending' | 'cooking' | 'ready') => {
-      const supabase = createClient();
-      
-      // Optimistic update
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.id === orderId ? { ...order, status } : order
-        )
-      );
+        console.log('[v0] Orders fetched:', data);
 
-      // Update in database
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ estado: mapStatusToEstado(status) })
-        .eq('id', orderId);
-
-      if (updateError) {
-        console.error('Error updating order status:', updateError);
-        // Revert on error - refetch
-        const { data } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', orderId)
-          .single();
         if (data) {
-          setOrders((prev) =>
-            prev.map((order) =>
-              order.id === orderId
-                ? { ...order, status: mapEstado(data.estado) }
-                : order
-            )
-          );
-        }
-      }
-    },
-    []
-  );
-
-  const removeOrder = useCallback(
-    async (orderId: string) => {
-      const supabase = createClient();
-      
-      // Optimistic update
-      setOrders((prev) => prev.filter((order) => order.id !== orderId));
-
-      // Delete from database
-      const { error: deleteError } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', orderId);
-
-      if (deleteError) {
-        console.error('Error deleting order:', deleteError);
-        // Refetch orders on error
-        const { data } = await supabase
-          .from('orders')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (data) {
-          const mappedOrders: Order[] = data.map((row) => ({
+          const mappedOrders: Order[] = data.map((row: any) => ({
             id: String(row.id),
             order_id: row.order_id || row.id,
             table: row.table_id || 0,
@@ -249,6 +129,124 @@ export function useOrders() {
           }));
           setOrders(mappedOrders);
         }
+        setError(null);
+      } catch (err: any) {
+        console.error('[v0] Error fetching orders:', err);
+        if (isMounted) {
+          setError('Error al cargar pedidos');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchOrders();
+
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload: any) => {
+          if (!isMounted) return;
+
+          console.log('[v0] Order change:', payload);
+
+          if (payload.eventType === 'INSERT') {
+            const newOrder: Order = {
+              id: String(payload.new.id),
+              order_id: payload.new.order_id || payload.new.id,
+              table: payload.new.table_id || 0,
+              items: parseItems(payload.new.items),
+              status: mapEstado(payload.new.estado),
+              createdAt: formatTimestamp(payload.new.created_at),
+              rawTimestamp: payload.new.created_at,
+            };
+            setOrders((prev) => [newOrder, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setOrders((prev) =>
+              prev.map((order) => {
+                if (String(order.id) === String(payload.new.id)) {
+                  return {
+                    ...order,
+                    items: parseItems(payload.new.items),
+                    status: mapEstado(payload.new.estado),
+                    createdAt: formatTimestamp(payload.new.created_at),
+                  };
+                }
+                return order;
+              })
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setOrders((prev) =>
+              prev.filter((order) => String(order.id) !== String(payload.old.id))
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const updateOrderStatus = useCallback(
+    async (orderId: string, status: 'pending' | 'cooking' | 'ready') => {
+      const supabase = createClient();
+
+      // Optimistic update
+      setOrders((prev) =>
+        prev.map((order) =>
+          String(order.id) === String(orderId) ? { ...order, status } : order
+        )
+      );
+
+      // Update in database
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ estado: mapStatusToEstado(status) })
+        .eq('id', orderId);
+
+      if (updateError) {
+        console.error('[v0] Error updating order:', updateError);
+        // Revert optimistic update
+        setOrders((prev) =>
+          prev.map((order) =>
+            String(order.id) === String(orderId)
+              ? { ...order, status: mapEstado(mapStatusToEstado(status)) }
+              : order
+          )
+        );
+      }
+    },
+    []
+  );
+
+  const removeOrder = useCallback(
+    async (orderId: string) => {
+      const supabase = createClient();
+
+      // Optimistic update
+      setOrders((prev) => prev.filter((order) => String(order.id) !== String(orderId)));
+
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (deleteError) {
+        console.error('[v0] Error deleting order:', deleteError);
+        // The subscription will handle re-fetching if needed
       }
     },
     []

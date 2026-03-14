@@ -27,47 +27,48 @@ function mapReason(reason: string): 'service' | 'payment' | 'complaint' | 'other
   return 'other';
 }
 
-// Format timestamp with -3 hours offset
-function formatTimestamp(timestamp: string): string {
-  const date = new Date(timestamp);
-  date.setHours(date.getHours() - 3);
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  const seconds = date.getSeconds().toString().padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
-}
-
 export function useWaiterCalls() {
   const [calls, setCalls] = useState<WaiterCall[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const supabase = createClient();
-    
+    let isMounted = true;
+
     const fetchCalls = async () => {
       try {
-        setLoading(true);
-        const { data, error } = await supabase
+        console.log('[v0] Fetching waiter calls from Supabase...');
+        const { data, error: fetchError } = await supabase
           .from('waiter_calls')
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (fetchError) {
+          console.error('[v0] Fetch error:', fetchError);
+          throw fetchError;
+        }
 
-        const mappedCalls: WaiterCall[] = (data || []).map((row) => ({
-          id: String(row.id),
-          table: row.table_id || 0,
-          reason: mapReason(row.reason || row.motivo || ''),
-          message: row.message || row.mensaje || undefined,
-          createdAt: formatTimestamp(row.created_at || row.timestampz),
-          acknowledged: row.acknowledged || row.atendido || false,
-        }));
+        if (!isMounted) return;
 
-        setCalls(mappedCalls);
-      } catch (err) {
-        console.error('Error fetching waiter calls:', err);
+        console.log('[v0] Waiter calls fetched:', data);
+
+        if (data) {
+          const mappedCalls: WaiterCall[] = data.map((row: any) => ({
+            id: String(row.id),
+            table: row.table_id || 0,
+            reason: mapReason(row.reason || row.motivo || ''),
+            message: row.message || row.mensaje || undefined,
+            createdAt: row.created_at,
+            acknowledged: row.acknowledged === true || row.atendido === true,
+          }));
+          setCalls(mappedCalls);
+        }
+      } catch (err: any) {
+        console.error('[v0] Error fetching waiter calls:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -83,7 +84,11 @@ export function useWaiterCalls() {
           schema: 'public',
           table: 'waiter_calls',
         },
-        (payload) => {
+        (payload: any) => {
+          if (!isMounted) return;
+
+          console.log('[v0] Waiter call change:', payload);
+
           if (payload.eventType === 'INSERT') {
             const row = payload.new;
             const newCall: WaiterCall = {
@@ -91,18 +96,18 @@ export function useWaiterCalls() {
               table: row.table_id || 0,
               reason: mapReason(row.reason || row.motivo || ''),
               message: row.message || row.mensaje || undefined,
-              createdAt: formatTimestamp(row.created_at || row.timestampz),
-              acknowledged: row.acknowledged || row.atendido || false,
+              createdAt: row.created_at,
+              acknowledged: row.acknowledged === true || row.atendido === true,
             };
             setCalls((prev) => [newCall, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
             const row = payload.new;
             setCalls((prev) =>
               prev.map((call) =>
-                call.id === String(row.id)
+                String(call.id) === String(row.id)
                   ? {
                       ...call,
-                      acknowledged: row.acknowledged || row.atendido || false,
+                      acknowledged: row.acknowledged === true || row.atendido === true,
                       message: row.message || row.mensaje || call.message,
                     }
                   : call
@@ -110,13 +115,14 @@ export function useWaiterCalls() {
             );
           } else if (payload.eventType === 'DELETE') {
             const row = payload.old;
-            setCalls((prev) => prev.filter((call) => call.id !== String(row.id)));
+            setCalls((prev) => prev.filter((call) => String(call.id) !== String(row.id)));
           }
         }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
   }, []);
@@ -124,26 +130,26 @@ export function useWaiterCalls() {
   const acknowledgeCall = useCallback(
     async (callId: string) => {
       const supabase = createClient();
-      
+
       // Optimistic update
       setCalls((prev) =>
         prev.map((call) =>
-          call.id === callId ? { ...call, acknowledged: true } : call
+          String(call.id) === String(callId) ? { ...call, acknowledged: true } : call
         )
       );
 
       // Update in database
       const { error } = await supabase
         .from('waiter_calls')
-        .update({ acknowledged: true, atendido: true })
+        .update({ acknowledged: true })
         .eq('id', callId);
 
       if (error) {
-        console.error('Error acknowledging call:', error);
+        console.error('[v0] Error acknowledging call:', error);
         // Revert on error
         setCalls((prev) =>
           prev.map((call) =>
-            call.id === callId ? { ...call, acknowledged: false } : call
+            String(call.id) === String(callId) ? { ...call, acknowledged: false } : call
           )
         );
       }
@@ -154,9 +160,9 @@ export function useWaiterCalls() {
   const removeCall = useCallback(
     async (callId: string) => {
       const supabase = createClient();
-      
+
       // Optimistic update
-      setCalls((prev) => prev.filter((call) => call.id !== callId));
+      setCalls((prev) => prev.filter((call) => String(call.id) !== String(callId)));
 
       // Delete from database
       const { error } = await supabase
@@ -165,7 +171,7 @@ export function useWaiterCalls() {
         .eq('id', callId);
 
       if (error) {
-        console.error('Error deleting call:', error);
+        console.error('[v0] Error deleting call:', error);
       }
     },
     []
