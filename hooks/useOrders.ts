@@ -102,7 +102,7 @@ export function useOrders() {
         const { data, error: fetchError } = await supabase
           .from('orders')
           .select('*')
-          .order('timestampz', { ascending: false });
+          .order('created_at', { ascending: false });
 
         if (fetchError) throw fetchError;
 
@@ -112,8 +112,8 @@ export function useOrders() {
           table: row.table_id || 0,
           items: parseItems(row.items),
           status: mapEstado(row.estado),
-          createdAt: formatTimestamp(row.timestampz),
-          rawTimestamp: row.timestampz,
+          createdAt: formatTimestamp(row.created_at),
+          rawTimestamp: row.created_at,
         }));
 
         setOrders(mappedOrders);
@@ -147,8 +147,8 @@ export function useOrders() {
               table: row.table_id || 0,
               items: parseItems(row.items),
               status: mapEstado(row.estado),
-              createdAt: formatTimestamp(row.timestampz),
-              rawTimestamp: row.timestampz,
+              createdAt: formatTimestamp(row.created_at),
+              rawTimestamp: row.created_at,
             };
             setOrders((prev) => [newOrder, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
@@ -236,7 +236,7 @@ export function useOrders() {
         const { data } = await supabase
           .from('orders')
           .select('*')
-          .order('timestampz', { ascending: false });
+          .order('created_at', { ascending: false });
         if (data) {
           const mappedOrders: Order[] = data.map((row) => ({
             id: String(row.id),
@@ -244,8 +244,8 @@ export function useOrders() {
             table: row.table_id || 0,
             items: parseItems(row.items),
             status: mapEstado(row.estado),
-            createdAt: formatTimestamp(row.timestampz),
-            rawTimestamp: row.timestampz,
+            createdAt: formatTimestamp(row.created_at),
+            rawTimestamp: row.created_at,
           }));
           setOrders(mappedOrders);
         }
