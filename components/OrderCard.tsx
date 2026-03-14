@@ -43,23 +43,23 @@ export function OrderCard({ order, onStatusChange, onRemove }: OrderCardProps) {
 
   return (
     <div
-      className={`${config.bgColor} ${config.textColor} rounded-lg p-6 flex flex-col h-full shadow-lg border-2 border-opacity-50 transition-all`}
+      className={`${config.bgColor} ${config.textColor} rounded-lg p-4 flex flex-col h-full shadow-lg border-2 border-opacity-50 transition-all`}
     >
-      {/* Header with order_id and time */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono bg-black/30 px-2 py-1 rounded">
-            #{order.order_id}
-          </span>
-          <div className="flex items-center gap-1">
-            <StatusIcon className="w-5 h-5" />
-            <span className="text-sm font-semibold uppercase tracking-wide">
+      {/* Header: order_id left, status+time stacked right */}
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <span className="text-[10px] font-mono bg-black/30 px-2 py-0.5 rounded truncate max-w-[55%] leading-5 mt-0.5">
+          #{order.order_id}
+        </span>
+        <div className="flex flex-col items-end shrink-0">
+          <div className="flex items-center gap-1 mb-0.5">
+            <StatusIcon className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold uppercase tracking-wide">
               {config.label}
             </span>
           </div>
-        </div>
-        <div className="text-xl font-bold font-mono">
-          {order.createdAt}
+          <div className="text-sm font-bold font-mono opacity-90">
+            {order.createdAt}
+          </div>
         </div>
       </div>
 
