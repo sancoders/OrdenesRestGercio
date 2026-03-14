@@ -41,30 +41,35 @@ export function OrderCard({ order, onStatusChange, onRemove }: OrderCardProps) {
   const config = statusConfig[order.status];
   const StatusIcon = config.icon;
 
-  const elapsedTime = Math.floor(
-    (new Date().getTime() - order.createdAt.getTime()) / 1000
-  );
-  const minutes = Math.floor(elapsedTime / 60);
-  const seconds = elapsedTime % 60;
-
   return (
     <div
       className={`${config.bgColor} ${config.textColor} rounded-lg p-6 flex flex-col h-full shadow-lg border-2 border-opacity-50 transition-all`}
     >
+      {/* Header with order_id and time */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <StatusIcon className="w-6 h-6" />
-          <span className="text-sm font-semibold uppercase tracking-wide">
-            {config.label}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono bg-black/30 px-2 py-1 rounded">
+            #{order.order_id}
           </span>
+          <div className="flex items-center gap-1">
+            <StatusIcon className="w-5 h-5" />
+            <span className="text-sm font-semibold uppercase tracking-wide">
+              {config.label}
+            </span>
+          </div>
         </div>
-        <div className="text-2xl font-bold font-mono">
-          {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
+        <div className="text-xl font-bold font-mono">
+          {order.createdAt}
         </div>
       </div>
 
+      {/* Table number */}
+      <div className="mb-4">
+        <div className="text-4xl font-bold">Mesa {order.table}</div>
+      </div>
+
+      {/* Items list */}
       <div className="mb-6 flex-grow">
-        <div className="text-4xl font-bold mb-3">Mesa {order.table}</div>
         <div className="space-y-2">
           {order.items.map((item) => (
             <div key={item.id} className="flex justify-between text-sm">
@@ -79,6 +84,7 @@ export function OrderCard({ order, onStatusChange, onRemove }: OrderCardProps) {
         </div>
       </div>
 
+      {/* Action buttons */}
       <div className="flex gap-2 mt-4">
         {config.nextStatus && (
           <Button
