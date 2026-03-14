@@ -65,7 +65,7 @@ export function OrderCard({ order, onStatusChange, onRemove }: OrderCardProps) {
 
       {/* Table number */}
       <div className="mb-4">
-        <div className="text-4xl font-bold">Mesa {order.table}</div>
+        <div className="text-4xl font-bold">{order.table}</div>
       </div>
 
       {/* Items list */}

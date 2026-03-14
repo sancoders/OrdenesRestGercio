@@ -12,8 +12,8 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  order_id: number;
-  table: number;
+  order_id: string;
+  table: string;
   items: OrderItem[];
   status: 'pending' | 'cooking' | 'ready';
   createdAt: string; // Format: HH:MM:SS
@@ -120,8 +120,8 @@ export function useOrders() {
         if (data) {
           const mappedOrders: Order[] = data.map((row: any) => ({
             id: String(row.id),
-            order_id: row.order_id || row.id,
-            table: row.table_id || 0,
+            order_id: String(row.order_id || row.id),
+            table: String(row.table_id || ''),
             items: parseItems(row.items),
             status: mapEstado(row.estado),
             createdAt: formatTimestamp(row.created_at),
@@ -162,8 +162,8 @@ export function useOrders() {
           if (payload.eventType === 'INSERT') {
             const newOrder: Order = {
               id: String(payload.new.id),
-              order_id: payload.new.order_id || payload.new.id,
-              table: payload.new.table_id || 0,
+              order_id: String(payload.new.order_id || payload.new.id),
+              table: String(payload.new.table_id || ''),
               items: parseItems(payload.new.items),
               status: mapEstado(payload.new.estado),
               createdAt: formatTimestamp(payload.new.created_at),
@@ -203,6 +203,9 @@ export function useOrders() {
     async (orderId: string, status: 'pending' | 'cooking' | 'ready') => {
       const supabase = createClient();
 
+      // Get the order before updating for webhook data
+      const orderToUpdate = orders.find((o) => String(o.id) === String(orderId));
+
       // Optimistic update
       setOrders((prev) =>
         prev.map((order) =>
@@ -226,9 +229,29 @@ export function useOrders() {
               : order
           )
         );
+        return;
+      }
+
+      // Send webhook notification
+      if (orderToUpdate) {
+        try {
+          await fetch('https://n8n.srv1106280.hstgr.cloud/webhook/update-order-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              order_id: orderToUpdate.order_id,
+              mesa: orderToUpdate.table,
+              estado: mapStatusToEstado(status),
+            }),
+          });
+        } catch (webhookError) {
+          console.error('[v0] Webhook error:', webhookError);
+        }
       }
     },
-    []
+    [orders]
   );
 
   const removeOrder = useCallback(
