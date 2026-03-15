@@ -14,7 +14,7 @@ export interface WaiterCall {
   status: 'pendiente' | 'resuelto';
 }
 
-const VALID_REASONS: WaiterCallReason[] = ['water', 'bread', 'question', 'clean', 'bill', 'other'];
+const VALID_REASONS: WaiterCallReason[] = ['water', 'bread', 'question', 'clean', 'bill', 'cash-payment', 'other'];
 
 function mapReason(reason: string): WaiterCallReason {
   const r = reason?.toLowerCase() || '';
