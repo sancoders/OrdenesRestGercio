@@ -1,54 +1,41 @@
 'use client';
 
 import { WaiterCall } from '@/hooks/useWaiterCalls';
-import { Bell, MessageSquare, DollarSign, AlertCircle, XCircle } from 'lucide-react';
+import { Bell, MessageSquare, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface WaiterCallsDisplayProps {
   calls: WaiterCall[];
-  onAcknowledge: (callId: string) => void;
-  onRemove: (callId: string) => void;
+  onResolve: (callId: string) => void;
 }
 
-export function WaiterCallsDisplay({
-  calls,
-  onAcknowledge,
-  onRemove,
-}: WaiterCallsDisplayProps) {
-  const reasonConfig = {
-    service: {
-      icon: MessageSquare,
-      label: 'Servicio',
-      color: 'from-blue-600 to-blue-800',
-    },
-    payment: {
-      icon: DollarSign,
-      label: 'Pago',
-      color: 'from-purple-600 to-purple-800',
-    },
-    complaint: {
-      icon: AlertCircle,
-      label: 'Reclamo',
-      color: 'from-red-600 to-red-800',
-    },
-    other: {
-      icon: Bell,
-      label: 'Otro',
-      color: 'from-gray-600 to-gray-800',
-    },
-  };
+const reasonConfig = {
+  service: { icon: MessageSquare, label: 'Servicio', color: 'border-blue-500 bg-blue-950' },
+  payment: { icon: DollarSign, label: 'Pago', color: 'border-purple-500 bg-purple-950' },
+  complaint: { icon: AlertCircle, label: 'Reclamo', color: 'border-red-500 bg-red-950' },
+  other: { icon: Bell, label: 'Otro', color: 'border-gray-500 bg-gray-800' },
+};
 
+function timeAgo(createdAt: string): string {
+  const secs = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000);
+  if (secs < 60) return `hace ${secs}s`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `hace ${mins}m`;
+  return `hace ${Math.floor(mins / 60)}h`;
+}
+
+export function WaiterCallsDisplay({ calls, onResolve }: WaiterCallsDisplayProps) {
   if (calls.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-400">
-        <Bell className="w-12 h-12 mx-auto mb-2 opacity-50" />
-        <p>No hay llamadas de mozo</p>
+      <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+        <Bell className="w-10 h-10 mb-2 opacity-40" />
+        <p className="text-sm">Sin llamadas pendientes</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="flex flex-col gap-3">
       {calls.map((call) => {
         const config = reasonConfig[call.reason];
         const Icon = config.icon;
@@ -56,53 +43,39 @@ export function WaiterCallsDisplay({
         return (
           <div
             key={call.id}
-            className={`bg-gradient-to-br ${config.color} rounded-lg p-4 text-white border-2 ${
-              call.acknowledged ? 'border-green-500 opacity-75' : 'border-yellow-400'
-            } shadow-lg transition-all`}
+            className={`rounded-lg border-2 ${config.color} p-4 text-white shadow-md`}
           >
-            <div className="flex items-start justify-between mb-3">
+            {/* Header: reason + status badge */}
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Icon className="w-5 h-5" />
-                <span className="font-bold text-lg">{config.label}</span>
+                <Icon className="w-4 h-4" />
+                <span className="font-semibold text-sm">{config.label}</span>
               </div>
-              {call.acknowledged && (
-                <div className="text-xs bg-green-500 px-2 py-1 rounded-full font-bold">
-                  Atendido
-                </div>
-              )}
+              <span className="text-xs bg-yellow-500 text-black px-2 py-0.5 rounded-full font-bold uppercase">
+                {call.status}
+              </span>
             </div>
 
-            <div className="text-3xl font-bold mb-3">Mesa {call.table}</div>
+            {/* Table */}
+            <div className="text-2xl font-bold mb-1">Mesa {call.table}</div>
 
+            {/* Message */}
             {call.message && (
-              <p className="text-sm mb-3 opacity-90">{call.message}</p>
+              <p className="text-sm opacity-80 mb-2">{call.message}</p>
             )}
 
-            <div className="text-xs opacity-75 mb-4">
-              {Math.floor((new Date().getTime() - call.createdAt.getTime()) / 1000)}s
-              ago
-            </div>
+            {/* Time */}
+            <p className="text-xs opacity-60 mb-3">{timeAgo(call.createdAt)}</p>
 
-            <div className="flex gap-2">
-              {!call.acknowledged && (
-                <Button
-                  onClick={() => onAcknowledge(call.id)}
-                  className="flex-1 bg-white text-black hover:bg-gray-200 font-bold"
-                  size="sm"
-                >
-                  Confirmar
-                </Button>
-              )}
-              <Button
-                onClick={() => onRemove(call.id)}
-                variant="outline"
-                className="flex-1 border-white text-white hover:bg-white hover:text-black font-bold"
-                size="sm"
-              >
-                <XCircle className="w-4 h-4 mr-1" />
-                Resolver
-              </Button>
-            </div>
+            {/* Resolve button */}
+            <Button
+              onClick={() => onResolve(call.id)}
+              size="sm"
+              className="w-full bg-white text-black hover:bg-gray-200 font-bold"
+            >
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Resolver
+            </Button>
           </div>
         );
       })}

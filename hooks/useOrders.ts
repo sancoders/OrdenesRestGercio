@@ -177,19 +177,27 @@ export function useOrders() {
             };
             setOrders((prev) => [newOrder, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
-            setOrders((prev) =>
-              prev.map((order) => {
-                if (String(order.id) === String(payload.new.id)) {
-                  return {
-                    ...order,
-                    items: parseItems(payload.new.items),
-                    status: mapEstado(payload.new.status),
-                    createdAt: formatTimestamp(payload.new.created_at),
-                  };
-                }
-                return order;
-              })
-            );
+            const newStatusLower = payload.new.status?.toLowerCase() || '';
+            const isDelivered = newStatusLower === 'entregado' || newStatusLower === 'delivered';
+            if (isDelivered) {
+              setOrders((prev) =>
+                prev.filter((order) => String(order.id) !== String(payload.new.id))
+              );
+            } else {
+              setOrders((prev) =>
+                prev.map((order) => {
+                  if (String(order.id) === String(payload.new.id)) {
+                    return {
+                      ...order,
+                      items: parseItems(payload.new.items),
+                      status: mapEstado(payload.new.status),
+                      createdAt: formatTimestamp(payload.new.created_at),
+                    };
+                  }
+                  return order;
+                })
+              );
+            }
           } else if (payload.eventType === 'DELETE') {
             setOrders((prev) =>
               prev.filter((order) => String(order.id) !== String(payload.old.id))

@@ -5,11 +5,11 @@ import { useWaiterCalls } from '@/hooks/useWaiterCalls';
 import { useSoundNotification } from '@/hooks/useSoundNotification';
 import { OrderCard } from '@/components/OrderCard';
 import { WaiterCallsDisplay } from '@/components/WaiterCallsDisplay';
-import { ChefHat } from 'lucide-react';
+import { ChefHat, Bell } from 'lucide-react';
 
 export default function KitchenDisplay() {
   const { orders, updateOrderStatus, removeOrder } = useOrders();
-  const { calls, acknowledgeCall, removeCall } = useWaiterCalls();
+  const { calls, resolveCall, pendingCount } = useWaiterCalls();
   const { playSound } = useSoundNotification();
 
   const handleStatusChange = (orderId: string, status: 'pending' | 'cooking' | 'ready') => {
@@ -17,42 +17,33 @@ export default function KitchenDisplay() {
     playSound('order');
   };
 
-  const handleRemoveOrder = (orderId: string) => {
-    removeOrder(orderId);
-  };
-
-  const handleAcknowledgeCall = (callId: string) => {
-    acknowledgeCall(callId);
-    playSound('call');
-  };
-
-  const unacknowledgedCalls = calls.filter((c) => !c.acknowledged);
-
   return (
-    <main className="bg-background text-foreground min-h-screen p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary rounded-lg">
-              <ChefHat className="w-7 h-7 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold leading-tight">Pantalla de Cocina</h1>
-              <p className="text-muted-foreground text-sm">
-                {orders.length} pedido{orders.length !== 1 ? 's' : ''}
-                {unacknowledgedCalls.length > 0 && (
-                  <span className="text-red-400 font-semibold ml-2">
-                    · {unacknowledgedCalls.length} llamada{unacknowledgedCalls.length !== 1 ? 's' : ''} sin atender
-                  </span>
-                )}
-              </p>
-            </div>
+    <main className="bg-background text-foreground h-screen flex flex-col p-4 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary rounded-lg">
+            <ChefHat className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold leading-tight">Pantalla de Cocina</h1>
+            <p className="text-muted-foreground text-sm">
+              {orders.length} pedido{orders.length !== 1 ? 's' : ''}
+              {pendingCount > 0 && (
+                <span className="text-red-400 font-semibold ml-2">
+                  · {pendingCount} llamada{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''}
+                </span>
+              )}
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Orders Grid — 3 columns, scrollable, min 2 rows visible */}
-        <div className="mb-8">
+      {/* Main layout: orders + waiter calls sidebar */}
+      <div className="flex gap-4 flex-1 overflow-hidden">
+
+        {/* Orders — scrollable main area */}
+        <div className="flex-1 overflow-y-auto pr-1">
           {orders.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {orders.map((order) => (
@@ -60,43 +51,40 @@ export default function KitchenDisplay() {
                   key={order.id}
                   order={order}
                   onStatusChange={handleStatusChange}
-                  onRemove={handleRemoveOrder}
+                  onRemove={removeOrder}
                 />
               ))}
             </div>
           ) : (
-            <div className="text-center py-16">
-              <ChefHat className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-2xl font-semibold text-muted-foreground">
-                No hay pedidos pendientes
-              </p>
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <ChefHat className="w-16 h-16 mb-4 opacity-30" />
+              <p className="text-xl font-semibold">No hay pedidos pendientes</p>
             </div>
           )}
         </div>
 
-        {/* Waiter Calls Section */}
-        {calls.length > 0 && (
-          <div className="border-t border-border pt-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <div
-                className={`w-3 h-3 rounded-full shrink-0 ${
-                  unacknowledgedCalls.length > 0 ? 'bg-red-500 animate-pulse' : 'bg-green-500'
-                }`}
-              />
-              Llamadas del Mozo
-              {unacknowledgedCalls.length > 0 && (
-                <span className="text-red-400 text-base font-normal">
-                  ({unacknowledgedCalls.length} sin atender)
-                </span>
-              )}
-            </h2>
-            <WaiterCallsDisplay
-              calls={calls}
-              onAcknowledge={handleAcknowledgeCall}
-              onRemove={removeCall}
+        {/* Waiter calls — fixed sidebar, scrollable */}
+        <div className="w-72 shrink-0 flex flex-col overflow-hidden border-l border-border pl-4">
+          <div className="flex items-center gap-2 mb-3 shrink-0">
+            <div
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                pendingCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-green-500'
+              }`}
             />
+            <Bell className="w-4 h-4" />
+            <h2 className="font-bold text-base">Llamadas del Mozo</h2>
+            {pendingCount > 0 && (
+              <span className="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">
+                {pendingCount}
+              </span>
+            )}
           </div>
-        )}
+
+          <div className="overflow-y-auto flex-1">
+            <WaiterCallsDisplay calls={calls} onResolve={resolveCall} />
+          </div>
+        </div>
+
       </div>
     </main>
   );
