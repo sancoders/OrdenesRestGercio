@@ -1,7 +1,7 @@
 'use client';
 
-import { WaiterCall } from '@/hooks/useWaiterCalls';
-import { Bell, MessageSquare, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
+import { WaiterCall, WaiterCallReason } from '@/hooks/useWaiterCalls';
+import { Bell, Droplets, Wheat, HelpCircle, Sparkles, Receipt, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface WaiterCallsDisplayProps {
@@ -9,11 +9,13 @@ interface WaiterCallsDisplayProps {
   onResolve: (callId: string) => void;
 }
 
-const reasonConfig = {
-  service: { icon: MessageSquare, label: 'Servicio', color: 'border-blue-500 bg-blue-950' },
-  payment: { icon: DollarSign, label: 'Pago', color: 'border-purple-500 bg-purple-950' },
-  complaint: { icon: AlertCircle, label: 'Reclamo', color: 'border-red-500 bg-red-950' },
-  other: { icon: Bell, label: 'Otro', color: 'border-gray-500 bg-gray-800' },
+const reasonConfig: Record<WaiterCallReason, { icon: any; label: string; color: string }> = {
+  water:    { icon: Droplets,   label: '💧 Pedir agua',       color: 'border-blue-500 bg-blue-950' },
+  bread:    { icon: Wheat,      label: '🍞 Pedir pan',        color: 'border-yellow-500 bg-yellow-950' },
+  question: { icon: HelpCircle, label: '❓ Consulta',         color: 'border-cyan-500 bg-cyan-950' },
+  clean:    { icon: Sparkles,   label: '🧹 Limpiar mesa',     color: 'border-green-500 bg-green-950' },
+  bill:     { icon: Receipt,    label: '💸 Pedir la cuenta',  color: 'border-purple-500 bg-purple-950' },
+  other:    { icon: Bell,       label: '📌 Otro motivo',      color: 'border-gray-500 bg-gray-800' },
 };
 
 function timeAgo(createdAt: string): string {
@@ -57,7 +59,7 @@ export function WaiterCallsDisplay({ calls, onResolve }: WaiterCallsDisplayProps
             </div>
 
             {/* Table */}
-            <div className="text-2xl font-bold mb-1">Mesa {call.table}</div>
+            <div className="text-2xl font-bold mb-1">{call.table}</div>
 
             {/* Message */}
             {call.message && (

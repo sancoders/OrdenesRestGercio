@@ -3,27 +3,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
+export type WaiterCallReason = 'water' | 'bread' | 'question' | 'clean' | 'bill' | 'other';
+
 export interface WaiterCall {
   id: string;
-  table: number;
-  reason: 'service' | 'payment' | 'complaint' | 'other';
+  table: string;
+  reason: WaiterCallReason;
   message?: string;
   createdAt: string;
   status: 'pendiente' | 'resuelto';
 }
 
-function mapReason(reason: string): 'service' | 'payment' | 'complaint' | 'other' {
+const VALID_REASONS: WaiterCallReason[] = ['water', 'bread', 'question', 'clean', 'bill', 'other'];
+
+function mapReason(reason: string): WaiterCallReason {
   const r = reason?.toLowerCase() || '';
-  if (r.includes('pago') || r.includes('cuenta') || r === 'payment') return 'payment';
-  if (r.includes('queja') || r.includes('complaint') || r.includes('reclamo')) return 'complaint';
-  if (r.includes('servicio') || r.includes('service') || r.includes('atención')) return 'service';
+  if (VALID_REASONS.includes(r as WaiterCallReason)) return r as WaiterCallReason;
   return 'other';
 }
 
 function mapRow(row: any): WaiterCall {
   return {
     id: String(row.id),
-    table: row.table_id || 0,
+    table: String(row.table_id || ''),
     reason: mapReason(row.reason || row.motivo || ''),
     message: row.message || row.mensaje || undefined,
     createdAt: row.created_at,
