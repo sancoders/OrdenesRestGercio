@@ -20,19 +20,19 @@ export interface Order {
   rawTimestamp: string;
 }
 
-// Map Supabase estado to our status
-function mapEstado(estado: string): 'pending' | 'cooking' | 'ready' {
-  const estadoLower = estado?.toLowerCase() || '';
-  if (estadoLower === 'listo' || estadoLower === 'ready' || estadoLower === 'entregado') {
+// Map Supabase status to our status
+function mapEstado(status: string): 'pending' | 'cooking' | 'ready' {
+  const statusLower = status?.toLowerCase() || '';
+  if (statusLower === 'listo' || statusLower === 'ready' || statusLower === 'entregado') {
     return 'ready';
   }
-  if (estadoLower === 'cocinando' || estadoLower === 'cooking' || estadoLower === 'en cocina') {
+  if (statusLower === 'cocinando' || statusLower === 'cooking' || statusLower === 'en cocina') {
     return 'cooking';
   }
   return 'pending';
 }
 
-// Map our status back to Supabase estado
+// Map our status back to webhook estado value
 function mapStatusToEstado(status: 'pending' | 'cooking' | 'ready'): string {
   switch (status) {
     case 'ready':
@@ -118,15 +118,18 @@ export function useOrders() {
         console.log('[v0] Orders fetched:', data);
 
         if (data) {
-          const mappedOrders: Order[] = data.map((row: any) => ({
-            id: String(row.id),
-            order_id: String(row.order_id || row.id),
-            table: String(row.table_id || ''),
-            items: parseItems(row.items),
-            status: mapEstado(row.estado),
-            createdAt: formatTimestamp(row.created_at),
-            rawTimestamp: row.created_at,
-          }));
+          const mappedOrders: Order[] = data.map((row: any) => {
+            console.log('[v0] Mapping order status:', row.status);
+            return {
+              id: String(row.id),
+              order_id: String(row.order_id || row.id),
+              table: String(row.table_id || ''),
+              items: parseItems(row.items),
+              status: mapEstado(row.status),
+              createdAt: formatTimestamp(row.created_at),
+              rawTimestamp: row.created_at,
+            };
+          });
           setOrders(mappedOrders);
         }
         setError(null);
