@@ -10,13 +10,13 @@ interface WaiterCallsDisplayProps {
 }
 
 const reasonConfig: Record<WaiterCallReason, { icon: any; label: string; color: string }> = {
-  water:          { icon: Droplets,   label: '💧 Pedir agua',        color: 'border-blue-500 bg-blue-950' },
-  bread:          { icon: Wheat,      label: '🍞 Pedir pan',         color: 'border-yellow-500 bg-yellow-950' },
-  question:       { icon: HelpCircle, label: '❓ Consulta',          color: 'border-cyan-500 bg-cyan-950' },
-  clean:          { icon: Sparkles,   label: '🧹 Limpiar mesa',      color: 'border-green-500 bg-green-950' },
-  bill:           { icon: Receipt,    label: '💸 Pedir la cuenta',   color: 'border-purple-500 bg-purple-950' },
-  'cash-payment': { icon: Receipt,    label: '💵 Pago en efectivo',  color: 'border-emerald-500 bg-emerald-950' },
-  other:          { icon: Bell,       label: '📌 Otro motivo',       color: 'border-gray-500 bg-gray-800' },
+  water:          { icon: Droplets,   label: 'Pedir agua',       color: 'border-blue-500 bg-blue-950' },
+  bread:          { icon: Wheat,      label: 'Pedir pan',        color: 'border-yellow-500 bg-yellow-950' },
+  question:       { icon: HelpCircle, label: 'Consulta',         color: 'border-cyan-500 bg-cyan-950' },
+  clean:          { icon: Sparkles,   label: 'Limpiar mesa',     color: 'border-green-500 bg-green-950' },
+  bill:           { icon: Receipt,    label: 'Pedir la cuenta',  color: 'border-purple-500 bg-purple-950' },
+  'cash-payment': { icon: Receipt,    label: 'Pago en efectivo', color: 'border-emerald-500 bg-emerald-950' },
+  other:          { icon: Bell,       label: 'Otro motivo',      color: 'border-gray-500 bg-gray-800' },
 };
 
 function timeAgo(createdAt: string): string {
