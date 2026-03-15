@@ -118,18 +118,15 @@ export function useOrders() {
         console.log('[v0] Orders fetched:', data);
 
         if (data) {
-          const mappedOrders: Order[] = data.map((row: any) => {
-            console.log('[v0] Mapping order status:', row.status);
-            return {
-              id: String(row.id),
-              order_id: String(row.order_id || row.id),
-              table: String(row.table_id || ''),
-              items: parseItems(row.items),
-              status: mapEstado(row.status),
-              createdAt: formatTimestamp(row.created_at),
-              rawTimestamp: row.created_at,
-            };
-          });
+          const mappedOrders: Order[] = data.map((row: any) => ({
+            id: String(row.id),
+            order_id: String(row.order_id || row.id),
+            table: String(row.table_id || ''),
+            items: parseItems(row.items),
+            status: mapEstado(row.status),
+            createdAt: formatTimestamp(row.created_at),
+            rawTimestamp: row.created_at,
+          }));
           setOrders(mappedOrders);
         }
         setError(null);
@@ -168,7 +165,7 @@ export function useOrders() {
               order_id: String(payload.new.order_id || payload.new.id),
               table: String(payload.new.table_id || ''),
               items: parseItems(payload.new.items),
-              status: mapEstado(payload.new.estado),
+              status: mapEstado(payload.new.status),
               createdAt: formatTimestamp(payload.new.created_at),
               rawTimestamp: payload.new.created_at,
             };
@@ -180,7 +177,7 @@ export function useOrders() {
                   return {
                     ...order,
                     items: parseItems(payload.new.items),
-                    status: mapEstado(payload.new.estado),
+                    status: mapEstado(payload.new.status),
                     createdAt: formatTimestamp(payload.new.created_at),
                   };
                 }
