@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-export type WaiterCallReason = 'water' | 'bread' | 'question' | 'clean' | 'bill' | 'other';
+export type WaiterCallReason = 'water' | 'bread' | 'question' | 'clean' | 'bill' | 'cash-payment' | 'other';
 
 export interface WaiterCall {
   id: string;
