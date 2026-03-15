@@ -201,38 +201,17 @@ export function useOrders() {
 
   const updateOrderStatus = useCallback(
     async (orderId: string, status: 'pending' | 'cooking' | 'ready') => {
-      const supabase = createClient();
-
       // Get the order before updating for webhook data
       const orderToUpdate = orders.find((o) => String(o.id) === String(orderId));
 
-      // Optimistic update
+      // Optimistic update (local only)
       setOrders((prev) =>
         prev.map((order) =>
           String(order.id) === String(orderId) ? { ...order, status } : order
         )
       );
 
-      // Update in database
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ estado: mapStatusToEstado(status) })
-        .eq('id', orderId);
-
-      if (updateError) {
-        console.error('[v0] Error updating order:', updateError);
-        // Revert optimistic update
-        setOrders((prev) =>
-          prev.map((order) =>
-            String(order.id) === String(orderId)
-              ? { ...order, status: mapEstado(mapStatusToEstado(status)) }
-              : order
-          )
-        );
-        return;
-      }
-
-      // Send webhook notification
+      // Send webhook notification - the webhook handles the actual update
       if (orderToUpdate) {
         try {
           await fetch('https://n8n.srv1106280.hstgr.cloud/webhook/update-order-status', {
@@ -246,6 +225,7 @@ export function useOrders() {
               estado: mapStatusToEstado(status),
             }),
           });
+          console.log('[v0] Webhook sent successfully');
         } catch (webhookError) {
           console.error('[v0] Webhook error:', webhookError);
         }
