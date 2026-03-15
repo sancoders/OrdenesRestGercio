@@ -118,7 +118,13 @@ export function useOrders() {
         console.log('[v0] Orders fetched:', data);
 
         if (data) {
-          const mappedOrders: Order[] = data.map((row: any) => ({
+          // Filter out orders with status "entregado"
+          const filteredData = data.filter((row: any) => {
+            const statusLower = row.status?.toLowerCase() || '';
+            return statusLower !== 'entregado' && statusLower !== 'delivered';
+          });
+          
+          const mappedOrders: Order[] = filteredData.map((row: any) => ({
             id: String(row.id),
             order_id: String(row.order_id || row.id),
             table: String(row.table_id || ''),
@@ -236,23 +242,32 @@ export function useOrders() {
 
   const removeOrder = useCallback(
     async (orderId: string) => {
-      const supabase = createClient();
+      // Get the order before removing for webhook data
+      const orderToRemove = orders.find((o) => String(o.id) === String(orderId));
 
-      // Optimistic update
+      // Optimistic update - remove from local state
       setOrders((prev) => prev.filter((order) => String(order.id) !== String(orderId)));
 
-      // Delete from database
-      const { error: deleteError } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', orderId);
-
-      if (deleteError) {
-        console.error('[v0] Error deleting order:', deleteError);
-        // The subscription will handle re-fetching if needed
+      // Send webhook with estado "entregado" - don't delete from database
+      if (orderToRemove) {
+        try {
+          await fetch('https://n8n.srv1106280.hstgr.cloud/webhook/update-order-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              order_id: orderToRemove.order_id,
+              mesa: orderToRemove.table,
+              estado: 'entregado',
+            }),
+          });
+        } catch (webhookError) {
+          console.error('[v0] Webhook error:', webhookError);
+        }
       }
     },
-    []
+    [orders]
   );
 
   return {
