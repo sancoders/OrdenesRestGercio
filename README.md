@@ -1,35 +1,51 @@
-# OrdenesRestGercio
+# Gercio — Real-time Kitchen Display
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+The kitchen-facing screen of **Gercio**, my restaurant-ordering SaaS. Orders placed by customers land here in real time so the kitchen and waiters can see them, track status, and keep service moving — no paper tickets, no manual relaying.
 
-## Built with v0
+> **Live demo:** https://v0-real-time-kitchen-display.vercel.app
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+![status](https://img.shields.io/badge/status-production-success) ![next](https://img.shields.io/badge/Next.js-black) ![supabase](https://img.shields.io/badge/Supabase-realtime-3ecf8e)
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_Cf7NiJSFwnqMSyk450KWhuToqhuI)
+---
 
-## Getting Started
+## What it does
 
-First, run the development server:
+- **Live order board** — new orders appear instantly via Supabase Realtime (orders are created by an [n8n workflow](https://github.com/sancoders/n8n-automations) when a customer checks out).
+- **Status tracking** — move an order through *received → preparing → ready*; the change syncs back to the customer app and waiter notifications.
+- **Always-on display** — designed to run on a kitchen screen/tablet 24/7.
+
+It's one piece of the Gercio system: customer web app (QR ordering) + AI assistant + Mercado Pago payments + Telegram staff alerts + this kitchen display, all glued together with n8n automations and a Supabase backend.
+
+## Tech stack
+
+- **Framework:** Next.js (App Router) · React · TypeScript
+- **UI:** Tailwind CSS · shadcn/ui (Radix) · lucide-react
+- **Data:** Supabase (PostgreSQL + Realtime) via `@supabase/ssr`
+- **Deploy:** Vercel
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local   # fill in your Supabase project values
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-## Learn More
+See [`.env.example`](.env.example). You'll need a Supabase project with an `orders` table; the anon key is safe for the client (protected by Row Level Security).
 
-To learn more, take a look at the following resources:
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+## Impact
 
-<a href="https://v0.app/chat/api/kiro/clone/sancoders/OrdenesRestGercio" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+Order processing went from ~5 minutes (manual relaying) to under 30 seconds, and the kitchen always has the live queue without anyone retyping anything.
+
+---
+
+*Built by [Santiago Cione](https://github.com/sancoders) — part of the [Gercio](https://gercio.site) SaaS.*
