@@ -42,9 +42,9 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
 
-## Impact
+## Why it exists
 
-Order processing went from ~5 minutes (manual relaying) to under 30 seconds, and the kitchen always has the live queue without anyone retyping anything.
+Before this, an order taken at the table had to be carried or called through to the kitchen, and the kitchen had no queue it could look at. Now it is on the screen the moment the customer confirms, the status is visible to everyone at once, and nobody retypes anything.
 
 ---
 
