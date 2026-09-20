@@ -86,6 +86,42 @@ function parseItems(items: any): OrderItem[] {
   return [];
 }
 
+// URL del webhook de n8n que persiste el cambio de estado. Va por entorno:
+// la instancia se migro de Hostinger a Contabo y el host viejo quedo hardcodeado
+// aca, sin resolver por DNS, con el fallo tapado por un catch mudo.
+const N8N_WEBHOOK_URL = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL;
+
+// Avisa a n8n el nuevo estado. Devuelve false si no se pudo confirmar: el
+// cambio local es optimista y sin esto se pierde al recargar.
+async function notifyStatusChange(payload: {
+  order_id: string;
+  mesa: string;
+  estado: string;
+}): Promise<boolean> {
+  if (!N8N_WEBHOOK_URL) {
+    console.error(
+      '[gercio] Falta NEXT_PUBLIC_N8N_WEBHOOK_URL: el cambio de estado no se guarda.'
+    );
+    return false;
+  }
+
+  try {
+    const res = await fetch(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      console.error('[gercio] El webhook respondio', res.status);
+      return false;
+    }
+    return true;
+  } catch (webhookError) {
+    console.error('[gercio] No se pudo avisar al webhook:', webhookError);
+    return false;
+  }
+}
+
 export function useOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,21 +259,13 @@ export function useOrders() {
 
       // Send webhook notification - the webhook handles the actual update
       if (orderToUpdate) {
-        try {
-          await fetch('https://n8n.srv1106280.hstgr.cloud/webhook/update-order-status', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              order_id: orderToUpdate.order_id,
-              mesa: orderToUpdate.table,
-              estado: mapStatusToEstado(status),
-            }),
-          });
-          console.log('[v0] Webhook sent successfully');
-        } catch (webhookError) {
-          console.error('[v0] Webhook error:', webhookError);
+        const ok = await notifyStatusChange({
+          order_id: orderToUpdate.order_id,
+          mesa: orderToUpdate.table,
+          estado: mapStatusToEstado(status),
+        });
+        if (!ok) {
+          setError('No se pudo guardar el cambio de estado. Revisa la conexion.');
         }
       }
     },
@@ -254,20 +282,13 @@ export function useOrders() {
 
       // Send webhook with estado "entregado" - don't delete from database
       if (orderToRemove) {
-        try {
-          await fetch('https://n8n.srv1106280.hstgr.cloud/webhook/update-order-status', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              order_id: orderToRemove.order_id,
-              mesa: orderToRemove.table,
-              estado: 'entregado',
-            }),
-          });
-        } catch (webhookError) {
-          console.error('[v0] Webhook error:', webhookError);
+        const ok = await notifyStatusChange({
+          order_id: orderToRemove.order_id,
+          mesa: orderToRemove.table,
+          estado: 'entregado',
+        });
+        if (!ok) {
+          setError('No se pudo marcar el pedido como entregado. Revisa la conexion.');
         }
       }
     },

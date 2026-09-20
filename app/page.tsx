@@ -39,8 +39,9 @@ export default function KitchenDisplay() {
         </div>
       </div>
 
-      {/* Main layout: orders + waiter calls sidebar */}
-      <div className="flex gap-4 flex-1 overflow-hidden">
+      {/* Main layout: sidebar becomes a top row below lg, where a fixed w-72
+          column would eat the width the order grid needs. */}
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 overflow-hidden">
 
         {/* Orders — scrollable main area */}
         <div className="flex-1 overflow-y-auto pr-1">
@@ -63,8 +64,8 @@ export default function KitchenDisplay() {
           )}
         </div>
 
-        {/* Waiter calls — fixed sidebar, scrollable */}
-        <div className="w-72 shrink-0 flex flex-col overflow-hidden border-l border-border pl-4">
+        {/* Waiter calls — top row below lg, fixed sidebar from lg up */}
+        <div className="order-first lg:order-none w-full lg:w-72 shrink-0 flex flex-col overflow-hidden max-h-44 lg:max-h-none border-b lg:border-b-0 lg:border-l border-border pb-3 lg:pb-0 lg:pl-4">
           <div className="flex items-center gap-2 mb-3 shrink-0">
             <div
               className={`w-2.5 h-2.5 rounded-full shrink-0 ${
